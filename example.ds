@@ -1,1 +1,1 @@
-str x = "test"
+int x = 5

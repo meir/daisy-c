@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include "token.h"
 #include "lexer.h"
@@ -26,3 +27,4 @@ struct ASTBody {
 typedef struct ASTBody ASTBody;
 
 ASTNode* parse_file(char* src);
+int sequence_match(Lexer *lexer, ...);

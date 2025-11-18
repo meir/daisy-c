@@ -46,7 +46,7 @@ char next_char(Lexer* lexer) {
   return *lexer->current++;
 }
 
-KeywordType check_keyword_ahead(Lexer* lexer) {
+Position* check_keyword(Lexer* lexer) {
   char* start = lexer->current;
   for(int64_t i = 0; i < KEYWORD_COUNT; i++) {
     char* keyword = (char*) KEYWORDS[i];
@@ -56,69 +56,123 @@ KeywordType check_keyword_ahead(Lexer* lexer) {
     }
 
     if(*keyword == '\0') {
-      lexer->current = start;
-      return (KeywordType) i;
+      int64_t length = start - lexer->current;
+      Position* pos = malloc(sizeof(Position));
+      pos->start = lexer->current;
+      pos->length = length;
     }else {
       start = lexer->current;
     }
   }
-  return INVALID_TYPE;
+  return NULL;
 }
 
-TokenType check_token_type(Lexer* lexer) {
-  char c = next_char(lexer);
-  switch(c) {
-    case '[': return LBracket;
-    case ']': return RBracket;
-    case '{': return LCurly;
-    case '}': return RCurly;
-    case '(': return LParen;
-    case ')': return RParen;
+Position* check_identifier(Lexer* lexer) {
+  char* start = lexer->current;
+  if(!(*start >= 'A' && *start <= 'Z') || (*start >= 'a' && *start <= 'z') || *start == '_') {
+      return NULL;
+  }
 
-    case '.': return DOT;
-    case ',': return COMMA;
-    case ';': return SEMICOLON;
+  int64_t i;
+  for(i = 0; *(start + i) != '\0'; i++) {
+    char* current = start + i;
+    if(!(*current >= 'A' && *current <= 'Z') || (*current >= 'a' && *current <= 'z') || (*current >= '0' && *current <= '9') || *current == '_') {
+      break;
+    }
+  }
 
-    case '=': return Equal;
-    case '-': return Minus;
-    case '+': return Plus;
-    case '*': return Multiply;
-    case '/': return Divide;
+  Position* pos = malloc(sizeof(Position));
+  pos->start = start;
+  pos->length = i;
+  return pos;
+}
 
-    case '>': return Higher;
-    case '<': return Lower;
+Position* check_token(Lexer* lexer) {
+  Position* pos = malloc(sizeof(Position));
+  pos->start = lexer->current;
+  pos->length = 1;
+  return pos;
+}
 
-    case '"': return Quote;
-    case '\'': return SingleQuote;
-
-    default: return Other;
+Position* get_position(Lexer* lexer) {
+  Position* position = check_keyword(lexer);
+  if(position != NULL) {
+    return position;
+  }
+  
+  position = check_identifier(lexer);
+  if(position != NULL) {
+    return position;
+  }else{
+    return check_token(lexer);
   }
 }
 
-Token* next_token(Lexer* lexer) {
+Token* get_token(Lexer* lexer) {
   if (*lexer->current == '\0') {
     return NULL;
   }
-  char* start = lexer->current;
 
-  KeywordType kw = check_keyword_ahead(lexer);
-  if(kw != INVALID_TYPE) {
-    Token* token = malloc(sizeof(Token));
-    int64_t length = lexer->current - start;
-    token->type = Keyword;
-    token->keyword_type = kw;
+  Position* position = get_position(lexer);
+  Token* token = malloc(sizeof(Token));
+  token->position = position;
 
-    token->raw = start;
-    token->length = length;
-    return token;
+  switch(position->length) {
+    case 1:
+      for(int64_t i = 0; i < TOKEN_COUNT; i++) {
+        char* token_options = (char*) TOKENS[i];
+        while(*token_options != '\0') {
+          if(*token_options == position->start[0]) {
+            token->type = (TokenType) i;
+            break;
+          }
+          token_options++;
+        }
+      }
+      return token;
+    default:
+      token->type = Identifier;
+
+      for(int64_t i = 0; i < KEYWORD_COUNT; i++) {
+        char* keyword = (char*) KEYWORDS[i];
+        for(int64_t end = 0; *(position->start + end) != '\0'; end++) {
+          if(*(position->start + end) != *(keyword + end)) {
+            goto continue_outer;
+          }
+        }
+
+        token->type = Keyword;
+        token->keyword_type = (KeywordType) i;
+        break;
+continue_outer:;
+      }
+
+      return token;
   }
 
-  TokenType type = check_token_type(lexer);
-  Token* token = malloc(sizeof(Token));
-  token->type = type;
+  return NULL;
+}
 
-  token->raw = start;
-  token->length = 1;
+Token* next_token(Lexer* lexer, int skip_whitespace) {
+  Token* token = get_token(lexer);
+  if(token == NULL) {
+    return NULL;
+  }
+
+  lexer->current += token->position->length;
+
+  if(skip_whitespace) {
+    while(token->type == Whitespace) {
+      free(token->position);
+      free(token);
+      token = get_token(lexer);
+      if(token == NULL) {
+        return NULL;
+      }
+      lexer->current += token->position->length;
+    }
+  }
+
   return token;
 }
 
