@@ -131,7 +131,6 @@ Token* get_token(Lexer* lexer) {
           token_options++;
         }
       }
-      print_token(token);
       return token;
     default:
       token->type = Identifier;
@@ -150,7 +149,6 @@ Token* get_token(Lexer* lexer) {
 continue_outer:;
       }
 
-      print_token(token);
       return token;
   }
 
