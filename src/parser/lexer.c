@@ -60,6 +60,7 @@ Position* check_keyword(Lexer* lexer) {
       Position* pos = malloc(sizeof(Position));
       pos->start = lexer->current;
       pos->length = length;
+      return pos;
     }else {
       start = lexer->current;
     }
@@ -69,14 +70,14 @@ Position* check_keyword(Lexer* lexer) {
 
 Position* check_identifier(Lexer* lexer) {
   char* start = lexer->current;
-  if(!(*start >= 'A' && *start <= 'Z') || (*start >= 'a' && *start <= 'z') || *start == '_') {
+  if(!((*start >= 'A' && *start <= 'Z') || (*start >= 'a' && *start <= 'z') || *start == '_')) {
       return NULL;
   }
 
-  int64_t i;
-  for(i = 0; *(start + i) != '\0'; i++) {
+  int64_t i = 1;
+  for(i = 1; *(start + i) != '\0'; i++) {
     char* current = start + i;
-    if(!(*current >= 'A' && *current <= 'Z') || (*current >= 'a' && *current <= 'z') || (*current >= '0' && *current <= '9') || *current == '_') {
+    if(!((*current >= 'A' && *current <= 'Z') || (*current >= 'a' && *current <= 'z') || (*current >= '0' && *current <= '9') || *current == '_')) {
       break;
     }
   }
@@ -119,6 +120,7 @@ Token* get_token(Lexer* lexer) {
 
   switch(position->length) {
     case 1:
+      token->type = Identifier;
       for(int64_t i = 0; i < TOKEN_COUNT; i++) {
         char* token_options = (char*) TOKENS[i];
         while(*token_options != '\0') {
@@ -129,13 +131,14 @@ Token* get_token(Lexer* lexer) {
           token_options++;
         }
       }
+      print_token(token);
       return token;
     default:
       token->type = Identifier;
 
       for(int64_t i = 0; i < KEYWORD_COUNT; i++) {
         char* keyword = (char*) KEYWORDS[i];
-        for(int64_t end = 0; *(position->start + end) != '\0'; end++) {
+        for(int64_t end = 0; end < position->length; end++) {
           if(*(position->start + end) != *(keyword + end)) {
             goto continue_outer;
           }
@@ -147,6 +150,7 @@ Token* get_token(Lexer* lexer) {
 continue_outer:;
       }
 
+      print_token(token);
       return token;
   }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdio.h>
 #include <stdlib.h>
 #define cstr(str) str "\0"
 
@@ -28,6 +29,8 @@ typedef enum {
   
   Quote,      // "
   SingleQuote,// '
+  
+  Digit,      // [0-9]+
   
   Identifier, // [A-Za-z_][A-Za-z0-9_]*
 
@@ -59,6 +62,7 @@ static const char* TOKENS[TOKEN_COUNT] = {
   [Quote] = cstr("\""),
   [SingleQuote] = cstr("'"),
 
+  [Digit] = cstr("0123456789"),
   [Identifier] = cstr(""),
   [Keyword] = cstr(""),
   [Other] = cstr(""),
@@ -99,3 +103,4 @@ typedef struct {
   Position* position;
 } Token;
 
+void print_token(Token* token);
